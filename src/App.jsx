@@ -9,11 +9,14 @@ import Mantenimiento from './components/Mantenimiento'
 import Conductores from './components/Conductores'
 import Camiones from './components/Camiones'
 import Clientes from './components/Clientes'
-import AIChat from './components/AIChat'
-import Ic from './components/ui/Icons'
 import Pagos from './components/Pagos'
+import AIChat from './components/AIChat'
+import Login from './components/Login'
+import Ic from './components/ui/Icons'
 
 export default function App() {
+  const [user, setUser] = useState(null)
+  const [checkingAuth, setCheckingAuth] = useState(true)
   const [tab, setTab] = useState("dashboard")
   const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -26,6 +29,17 @@ export default function App() {
   const [clientes, setClientes] = useState([])
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user || null)
+      setCheckingAuth(false)
+    })
+    supabase.auth.onAuthStateChange((_e, session) => {
+      setUser(session?.user || null)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!user) return
     const cargar = async () => {
       const [c, d, v, g, m, cl] = await Promise.all([
         supabase.from('camiones').select('*'),
@@ -44,17 +58,25 @@ export default function App() {
       setLoading(false)
     }
     cargar()
-  }, [])
+  }, [user])
+
+  if (checkingAuth) return (
+    <div style={{ background:C.bg0, minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ fontSize:"13px", color:C.textMuted }}>Cargando...</div>
+    </div>
+  )
+
+  if (!user) return <Login onLogin={setUser}/>
 
   const nav = [
     { id:"dashboard",     label:"Dashboard", icon:"dashboard" },
     { id:"viajes",        label:"Viajes",    icon:"route"     },
     { id:"gastos",        label:"Gastos",    icon:"money"     },
     { id:"mantenimiento", label:"Mant.",     icon:"wrench"    },
+    { id:"pagos",         label:"Pagos",     icon:"money"     },
     { id:"conductores",   label:"Conductores", icon:"users"   },
     { id:"camiones",      label:"Flota",     icon:"truck"     },
     { id:"clientes",      label:"Clientes",  icon:"clients"   },
-    { id:"pagos",         label:"Pagos",     icon:"money"  },
   ]
 
   const alertCount = mantenimientos.filter(m => {
@@ -77,14 +99,19 @@ export default function App() {
           <span style={{ fontSize:"16px", fontWeight:700, color:C.accentLight, letterSpacing:"-0.03em" }}>Vialog</span>
           <span style={{ fontSize:"9px", color:C.textMuted, background:C.bg3, padding:"2px 6px", borderRadius:"10px", fontWeight:600 }}>v1</span>
         </div>
-        <button onClick={() => setMenuOpen(p => !p)} style={{ background:"none", border:"none", color:C.textSecondary, cursor:"pointer", position:"relative" }}>
-          <Ic n={menuOpen ? "close" : "menu"} s={20}/>
-          {alertCount > 0 && !menuOpen && (
-            <span style={{ position:"absolute", top:"-3px", right:"-3px", background:"#ef4444", color:"#fff", fontSize:"9px", fontWeight:800, width:"13px", height:"13px", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center" }}>
-              {alertCount}
-            </span>
-          )}
-        </button>
+        <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
+          <button onClick={() => supabase.auth.signOut()} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:"11px", fontWeight:600 }}>
+            Salir
+          </button>
+          <button onClick={() => setMenuOpen(p => !p)} style={{ background:"none", border:"none", color:C.textSecondary, cursor:"pointer", position:"relative" }}>
+            <Ic n={menuOpen ? "close" : "menu"} s={20}/>
+            {alertCount > 0 && !menuOpen && (
+              <span style={{ position:"absolute", top:"-3px", right:"-3px", background:"#ef4444", color:"#fff", fontSize:"9px", fontWeight:800, width:"13px", height:"13px", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                {alertCount}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* SIDEBAR */}
@@ -126,10 +153,10 @@ export default function App() {
         {tab === "viajes"        && <Viajes        viajes={viajes} setViajes={setViajes} camiones={camiones} conductores={conductores} clientes={clientes} gastos={gastos}/>}
         {tab === "gastos"        && <Gastos        gastos={gastos} setGastos={setGastos} viajes={viajes} camiones={camiones}/>}
         {tab === "mantenimiento" && <Mantenimiento mantenimientos={mantenimientos} setMantenimientos={setMantenimientos} camiones={camiones}/>}
+        {tab === "pagos"         && <Pagos         viajes={viajes} clientes={clientes} conductores={conductores} camiones={camiones}/>}
         {tab === "conductores"   && <Conductores   conductores={conductores} setConductores={setConductores} viajes={viajes}/>}
         {tab === "camiones"      && <Camiones      camiones={camiones} setCamiones={setCamiones} viajes={viajes}/>}
         {tab === "clientes"      && <Clientes      clientes={clientes} setClientes={setClientes} viajes={viajes}/>}
-        {tab === "pagos" && <Pagos viajes={viajes} clientes={clientes} conductores={conductores} camiones={camiones}/>}
       </div>
 
       <AIChat viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} clientes={clientes}/>
