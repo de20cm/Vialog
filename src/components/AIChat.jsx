@@ -31,15 +31,10 @@ const AIChat = ({ viajes, gastos, conductores, camiones, clientes }) => {
     setMsgs(p => [...p, { role:"user", text:txt }])
     setLoading(true)
     try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
+      const r = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-haiku-4-5-20251001",
-          max_tokens: 600,
-          system: ctx(),
-          messages: [{ role:"user", content:txt }]
-        })
+        body: JSON.stringify({ system: ctx(), messages: [{ role:"user", content: txt }] })
       })
       const d = await r.json()
       setMsgs(p => [...p, { role:"bot", text: d.content?.map(b => b.text || "").join("") || "Error al procesar." }])
