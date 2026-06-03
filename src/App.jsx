@@ -76,7 +76,7 @@ export default function App() {
     { id:"viajes",        label:"Viajes",    icon:"route"     },
     { id:"gastos",        label:"Gastos",    icon:"money"     },
     { id:"mantenimiento", label:"Mant.",     icon:"wrench"    },
-    { id:"pagos",         label:"Pagos",     icon:"money"     },
+    { id:"pagos",         label:"Pagos",     icon:"wallet"     },
     { id:"conductores",   label:"Conductores", icon:"users"   },
     { id:"camiones",      label:"Flota",     icon:"truck"     },
     { id:"clientes",      label:"Clientes",  icon:"clients"   },
@@ -152,7 +152,7 @@ export default function App() {
 
       {/* CONTENIDO */}
       <div style={{ maxWidth:"840px", margin:"0 auto", padding:"16px 13px 86px" }}>
-        {tab === "dashboard"     && <Dashboard     viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} mantenimientos={mantenimientos}/>}
+        {tab === "dashboard"     && <Dashboard     viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} mantenimientos={mantenimientos} pagos={pagos}/>}
         {tab === "viajes"        && <Viajes        viajes={viajes} setViajes={setViajes} camiones={camiones} setCamiones={setCamiones} conductores={conductores} clientes={clientes} gastos={gastos}/>}
         {tab === "gastos"        && <Gastos        gastos={gastos} setGastos={setGastos} viajes={viajes} camiones={camiones}/>}
         {tab === "mantenimiento" && <Mantenimiento mantenimientos={mantenimientos} setMantenimientos={setMantenimientos} camiones={camiones}/>}

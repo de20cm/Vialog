@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { C } from '../lib/colors'
 import { uid, fmt, today, calcEstado } from '../lib/helpers'
@@ -11,8 +11,14 @@ import { Inp, Sel, Field } from './ui/Input'
 
 const Mantenimiento = ({ mantenimientos, setMantenimientos, camiones }) => {
   const [modal, setModal] = useState(null)
+  const [historial, setHistorial] = useState([])
+  const [verHistorial, setVerHistorial] = useState(false)
   const [form, setForm] = useState({})
   const s = f => setForm(p => ({ ...p, ...f }))
+
+  useEffect(() => {
+    supabase.from('historial_mantenimientos').select('*').order('fecha_realizado', { ascending:false }).then(({ data }) => setHistorial(data || []))
+  }, [])
 
   const openNew = () => {
     setForm({ id:uid(), intervalo_km:10000, intervalo_dias:90 })
@@ -41,12 +47,27 @@ const Mantenimiento = ({ mantenimientos, setMantenimientos, camiones }) => {
   const marcarHecho = async m => {
     const cam = camiones.find(c => c.id === m.camion_id)
     const km  = cam?.km || m.km_ultimo
+
+    // Guardar en historial
+    const registro = {
+      id: uid(),
+      camion_id: m.camion_id,
+      tipo: m.tipo,
+      fecha_realizado: today(),
+      km_realizado: km,
+      costo: 0,
+      nota: m.nota || ''
+    }
+    await supabase.from('historial_mantenimientos').insert([registro])
+    setHistorial(p => [registro, ...p])
+
+    // Actualizar tarea
     const upd = {
       ...m,
-      fecha_ultimo:   today(),
-      km_ultimo:      km,
-      proxima_fecha:  new Date(Date.now() + m.intervalo_dias * 86400000).toISOString().split("T")[0],
-      proximo_km:     km + m.intervalo_km,
+      fecha_ultimo: today(),
+      km_ultimo: km,
+      proxima_fecha: new Date(Date.now() + m.intervalo_dias * 86400000).toISOString().split("T")[0],
+      proximo_km: km + m.intervalo_km,
     }
     await supabase.from('mantenimientos').update(upd).eq('id', m.id)
     setMantenimientos(p => p.map(x => x.id === m.id ? upd : x))
@@ -64,43 +85,66 @@ const Mantenimiento = ({ mantenimientos, setMantenimientos, camiones }) => {
           <h2 style={{ margin:"0 0 2px", fontSize:"19px", fontWeight:600, color:C.textPrimary }}>Mantenimiento preventivo</h2>
           <p style={{ margin:0, color:C.textSecondary, fontSize:"12px" }}>{total} alertas · estado automático</p>
         </div>
-        <Button onClick={openNew}><Ic n="plus" s={14}/> Agregar</Button>
+        <div style={{ display:"flex", gap:"6px" }}>
+          <Button onClick={() => setVerHistorial(p => !p)} variant="ghost">{verHistorial ? "Ver tareas" : "Ver historial"}</Button>
+          <Button onClick={openNew}><Ic n="plus" s={14}/> Agregar</Button>
+        </div>
       </div>
 
-      {grupos.map(({ cam, items }) => (
-        <div key={cam.id} style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:"9px", overflow:"hidden" }}>
-          <div style={{ padding:"10px 13px", borderBottom:`1px solid ${C.border}`, background:C.bg2, display:"flex", alignItems:"center", gap:"7px" }}>
-            <span style={{ fontSize:"13px", fontWeight:700, color:C.accentLight }}>{cam.placa}</span>
-            <span style={{ fontSize:"11px", color:C.textMuted }}>{cam.marca} {cam.modelo} · {fmt(cam.km)} km</span>
-          </div>
-          {items.length === 0 && <div style={{ padding:"12px 13px", color:C.textMuted, fontSize:"12px" }}>Sin tareas</div>}
-          {items.map(m => {
-            const est = calcEstado(m, cam.km)
+      {verHistorial ? (
+        <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
+          <h4 style={{ margin:"0 0 6px", fontSize:"11px", fontWeight:600, color:C.textMuted, textTransform:"uppercase", letterSpacing:"0.08em" }}>Historial de mantenimientos realizados</h4>
+          {historial.length === 0 && <div style={{ color:C.textMuted, textAlign:"center", padding:"36px", fontSize:"12px" }}>Sin historial aún</div>}
+          {historial.map(h => {
+            const cam = camiones.find(c => c.id === h.camion_id)
             return (
-              <div key={m.id} style={{ padding:"11px 13px", borderBottom:`1px solid ${C.bg3}`, display:"flex", justifyContent:"space-between", alignItems:"center", gap:"8px", flexWrap:"wrap" }}>
-                <div style={{ flex:1, minWidth:"150px" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:"6px", marginBottom:"2px" }}>
-                    <span style={{ fontSize:"12px", fontWeight:600, color:C.textPrimary }}>{m.tipo}</span>
-                    <Badge label={el[est] || est} color={ec[est] || "gray"}/>
-                  </div>
-                  <div style={{ fontSize:"10px", color:C.textMuted }}>Último: {m.fecha_ultimo || "—"}{m.km_ultimo ? ` · ${fmt(m.km_ultimo)} km` : ""}</div>
-                  <div style={{ fontSize:"10px", color:C.textMuted }}>Próximo: {m.proxima_fecha || "—"}{m.proximo_km ? ` · ${fmt(m.proximo_km)} km` : ""}</div>
-                  {m.nota && <div style={{ fontSize:"10px", color:C.yellow, marginTop:"1px" }}>{m.nota}</div>}
+              <div key={h.id} style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:"9px", padding:"11px 13px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:"8px" }}>
+                <div>
+                  <div style={{ fontSize:"12px", fontWeight:600, color:C.textPrimary, marginBottom:"2px" }}>{h.tipo}</div>
+                  <div style={{ fontSize:"10px", color:C.textMuted }}>{cam?.placa} · {h.fecha_realizado} · {fmt(h.km_realizado)} km</div>
+                  {h.nota && <div style={{ fontSize:"10px", color:C.yellow }}>{h.nota}</div>}
                 </div>
-                <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
-                  {est !== "ok" && (
-                    <button onClick={() => marcarHecho(m)} style={{ background:C.greenBg, border:`1px solid ${C.greenBorder}`, borderRadius:"6px", padding:"4px 9px", color:C.green, cursor:"pointer", fontSize:"11px", fontWeight:700 }}>
-                      ✓ Hecho
-                    </button>
-                  )}
-                  <Button onClick={() => openEdit(m)} variant="ghost" small><Ic n="edit" s={12}/></Button>
-                  <Button onClick={() => del(m.id)} variant="danger" small><Ic n="trash" s={12}/></Button>
-                </div>
+                <Badge label="Realizado" color="green"/>
               </div>
             )
           })}
         </div>
-      ))}
+      ) : (
+        grupos.map(({ cam, items }) => (
+          <div key={cam.id} style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:"9px", overflow:"hidden" }}>
+            <div style={{ padding:"10px 13px", borderBottom:`1px solid ${C.border}`, background:C.bg2, display:"flex", alignItems:"center", gap:"7px" }}>
+              <span style={{ fontSize:"13px", fontWeight:700, color:C.accentLight }}>{cam.placa}</span>
+              <span style={{ fontSize:"11px", color:C.textMuted }}>{cam.marca} {cam.modelo} · {fmt(cam.km)} km</span>
+            </div>
+            {items.length === 0 && <div style={{ padding:"12px 13px", color:C.textMuted, fontSize:"12px" }}>Sin tareas</div>}
+            {items.map(m => {
+              const est = calcEstado(m, cam.km)
+              return (
+                <div key={m.id} style={{ padding:"11px 13px", borderBottom:`1px solid ${C.bg3}`, display:"flex", justifyContent:"space-between", alignItems:"center", gap:"8px", flexWrap:"wrap" }}>
+                  <div style={{ flex:1, minWidth:"150px" }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:"6px", marginBottom:"2px" }}>
+                      <span style={{ fontSize:"12px", fontWeight:600, color:C.textPrimary }}>{m.tipo}</span>
+                      <Badge label={el[est] || est} color={ec[est] || "gray"}/>
+                    </div>
+                    <div style={{ fontSize:"10px", color:C.textMuted }}>Último: {m.fecha_ultimo || "—"}{m.km_ultimo ? ` · ${fmt(m.km_ultimo)} km` : ""}</div>
+                    <div style={{ fontSize:"10px", color:C.textMuted }}>Próximo: {m.proxima_fecha || "—"}{m.proximo_km ? ` · ${fmt(m.proximo_km)} km` : ""}</div>
+                    {m.nota && <div style={{ fontSize:"10px", color:C.yellow, marginTop:"1px" }}>{m.nota}</div>}
+                  </div>
+                  <div style={{ display:"flex", gap:"4px", alignItems:"center" }}>
+                    {est !== "ok" && (
+                      <button onClick={() => marcarHecho(m)} style={{ background:C.greenBg, border:`1px solid ${C.greenBorder}`, borderRadius:"6px", padding:"4px 9px", color:C.green, cursor:"pointer", fontSize:"11px", fontWeight:700 }}>
+                        ✓ Hecho
+                      </button>
+                    )}
+                    <Button onClick={() => openEdit(m)} variant="ghost" small><Ic n="edit" s={12}/></Button>
+                    <Button onClick={() => del(m.id)} variant="danger" small><Ic n="trash" s={12}/></Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))
+      )}
 
       {modal && (
         <Modal title={modal === "new" ? "Nueva tarea" : "Editar tarea"} onClose={() => setModal(null)}>

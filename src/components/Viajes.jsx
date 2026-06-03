@@ -13,7 +13,15 @@ const Viajes = ({ viajes, setViajes, camiones, setCamiones, conductores, cliente
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({})
   const [filtro, setFiltro] = useState("todos")
+  const [mes, setMes] = useState(() => {
+    const hoy = new Date()
+    return `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`
+  })
   const s = f => setForm(p => ({ ...p, ...f }))
+
+  const meses = [...new Set(viajes.map(v => v.salida?.slice(0,7)).filter(Boolean))].sort().reverse()
+  const viajesMes = viajes.filter(v => v.salida?.startsWith(mes))
+  const filt = filtro === "todos" ? viajesMes : viajesMes.filter(v => v.estado === filtro)
 
   const openNew = () => {
     setForm({ id:uid(), numero:`V-${String(viajes.length+1).padStart(3,"0")}`, salida:today(), pagado:false, estado:"en curso", litros_combustible:0, peso_kg:0 })
@@ -23,12 +31,10 @@ const Viajes = ({ viajes, setViajes, camiones, setCamiones, conductores, cliente
 
   const save_ = async () => {
     if (!form.camion_id || !form.origen || !form.destino || !form.flete) return alert("Completa los campos obligatorios")
-  
+
     if (modal === "new") {
       const { data } = await supabase.from('viajes').insert([form]).select()
       setViajes(p => [...p, data[0]])
-
-      // Actualizar km del camión
       if (form.km) {
         const camion = camiones.find(c => c.id === form.camion_id)
         if (camion) {
@@ -38,12 +44,10 @@ const Viajes = ({ viajes, setViajes, camiones, setCamiones, conductores, cliente
         }
       }
     } else {
-      // Al editar, calcular diferencia de km
       const viajeAnterior = viajes.find(v => v.id === form.id)
       const difKm = (form.km || 0) - (viajeAnterior?.km || 0)
       await supabase.from('viajes').update(form).eq('id', form.id)
       setViajes(p => p.map(v => v.id === form.id ? form : v))
-
       if (difKm !== 0) {
         const camion = camiones.find(c => c.id === form.camion_id)
         if (camion) {
@@ -62,7 +66,6 @@ const Viajes = ({ viajes, setViajes, camiones, setCamiones, conductores, cliente
     setViajes(p => p.filter(v => v.id !== id))
   }
 
-  const filt = filtro === "todos" ? viajes : viajes.filter(v => v.estado === filtro)
   const ec = { "en curso":"blue", "completado":"green", "pendiente":"yellow", "cobrado":"green" }
 
   return (
@@ -70,21 +73,29 @@ const Viajes = ({ viajes, setViajes, camiones, setCamiones, conductores, cliente
       <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:"9px" }}>
         <div>
           <h2 style={{ margin:"0 0 2px", fontSize:"19px", fontWeight:600, color:C.textPrimary }}>Viajes</h2>
-          <p style={{ margin:0, color:C.textSecondary, fontSize:"12px" }}>{viajes.length} registros</p>
+          <p style={{ margin:0, color:C.textSecondary, fontSize:"12px" }}>{viajesMes.length} este mes · {viajes.length} total</p>
         </div>
         <Button onClick={openNew}><Ic n="plus" s={14}/> Nuevo viaje</Button>
       </div>
 
+      <div style={{ display:"flex", alignItems:"center", gap:"6px", flexWrap:"wrap" }}>
+        {meses.map(m => (
+          <button key={m} onClick={() => setMes(m)} style={{ padding:"3px 10px", borderRadius:"20px", border:"1px solid", fontSize:"11px", fontWeight:600, cursor:"pointer", background:mes===m?C.accent:"transparent", color:mes===m?"#fff":C.textMuted, borderColor:mes===m?C.accent:C.border }}>
+            {m}
+          </button>
+        ))}
+      </div>
+
       <div style={{ display:"flex", gap:"5px", flexWrap:"wrap" }}>
         {["todos", ...ESTADOS].map(f => (
-          <button key={f} onClick={() => setFiltro(f)} style={{ padding:"3px 10px", borderRadius:"20px", border:"1px solid", fontSize:"11px", fontWeight:600, cursor:"pointer", background:filtro===f?C.accent:"transparent", color:filtro===f?"#fff":C.textMuted, borderColor:filtro===f?C.accent:C.border, textTransform:"capitalize" }}>
+          <button key={f} onClick={() => setFiltro(f)} style={{ padding:"3px 10px", borderRadius:"20px", border:"1px solid", fontSize:"11px", fontWeight:600, cursor:"pointer", background:filtro===f?C.bg3:"transparent", color:filtro===f?C.textPrimary:C.textMuted, borderColor:filtro===f?C.border:C.border, textTransform:"capitalize" }}>
             {f}
           </button>
         ))}
       </div>
 
       <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
-        {filt.length === 0 && <div style={{ color:C.textMuted, textAlign:"center", padding:"36px", fontSize:"12px" }}>Sin viajes</div>}
+        {filt.length === 0 && <div style={{ color:C.textMuted, textAlign:"center", padding:"36px", fontSize:"12px" }}>Sin viajes este mes</div>}
         {filt.map(v => {
           const cam  = camiones.find(c => c.id === v.camion_id)
           const cond = conductores.find(c => c.id === v.conductor_id)
