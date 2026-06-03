@@ -15,12 +15,16 @@ const KpiCard = ({ label, value, sub, color = C.accentLight, icon }) => (
   </div>
 )
 
-const Dashboard = ({ viajes, gastos, conductores, camiones, mantenimientos }) => {
+const Dashboard = ({ viajes, gastos, conductores, camiones, mantenimientos, pagos = [] }) => {
   const tf = viajes.reduce((s,v) => s + v.flete, 0)
   const tg = gastos.reduce((s,g) => s + g.monto_usd, 0)
   const util = tf - tg
-  const pc = viajes.filter(v => !v.pagado).reduce((s,v) => s + v.flete, 0)
-  const cob = viajes.filter(v => v.pagado).reduce((s,v) => s + v.flete, 0)
+  const totalPagado = pagos.reduce((s,p) => s + p.monto_usd, 0)
+  const pc = viajes.reduce((s,v) => {
+    const cobrado = pagos.filter(p => p.viaje_id === v.id).reduce((s,p) => s + p.monto_usd, 0)
+    return s + Math.max(v.flete - cobrado, 0)
+  }, 0)
+  const cob = totalPagado
   const ec = viajes.filter(v => v.estado === "en curso").length
   const tl = viajes.reduce((s,v) => s + (v.litros_combustible || 0), 0)
 

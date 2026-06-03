@@ -9,7 +9,7 @@ import Modal from './ui/Modal'
 import Ic from './ui/Icons'
 import { Inp, Sel, Field } from './ui/Input'
 
-const Viajes = ({ viajes, setViajes, camiones, conductores, clientes, gastos }) => {
+const Viajes = ({ viajes, setViajes, camiones, setCamiones, conductores, clientes, gastos }) => {
   const [modal, setModal] = useState(null)
   const [form, setForm] = useState({})
   const [filtro, setFiltro] = useState("todos")
@@ -23,12 +23,35 @@ const Viajes = ({ viajes, setViajes, camiones, conductores, clientes, gastos }) 
 
   const save_ = async () => {
     if (!form.camion_id || !form.origen || !form.destino || !form.flete) return alert("Completa los campos obligatorios")
+  
     if (modal === "new") {
       const { data } = await supabase.from('viajes').insert([form]).select()
       setViajes(p => [...p, data[0]])
+
+      // Actualizar km del camión
+      if (form.km) {
+        const camion = camiones.find(c => c.id === form.camion_id)
+        if (camion) {
+          const nuevosKm = (camion.km || 0) + form.km
+          await supabase.from('camiones').update({ km: nuevosKm }).eq('id', camion.id)
+          setCamiones(p => p.map(c => c.id === camion.id ? { ...c, km: nuevosKm } : c))
+        }
+      }
     } else {
+      // Al editar, calcular diferencia de km
+      const viajeAnterior = viajes.find(v => v.id === form.id)
+      const difKm = (form.km || 0) - (viajeAnterior?.km || 0)
       await supabase.from('viajes').update(form).eq('id', form.id)
       setViajes(p => p.map(v => v.id === form.id ? form : v))
+
+      if (difKm !== 0) {
+        const camion = camiones.find(c => c.id === form.camion_id)
+        if (camion) {
+          const nuevosKm = (camion.km || 0) + difKm
+          await supabase.from('camiones').update({ km: nuevosKm }).eq('id', camion.id)
+          setCamiones(p => p.map(c => c.id === camion.id ? { ...c, km: nuevosKm } : c))
+        }
+      }
     }
     setModal(null)
   }

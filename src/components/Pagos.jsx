@@ -9,15 +9,10 @@ import Modal from './ui/Modal'
 import Ic from './ui/Icons'
 import { Inp, Sel, Field } from './ui/Input'
 
-const Pagos = ({ viajes, clientes, conductores, camiones }) => {
-  const [pagos, setPagos] = useState([])
+const Pagos = ({ viajes, clientes, conductores, camiones, pagos, setPagos }) => {
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({})
   const s = f => setForm(p => ({ ...p, ...f }))
-
-  useEffect(() => {
-    supabase.from('pagos').select('*').then(({ data }) => setPagos(data || []))
-  }, [])
 
   const openNew = () => {
     setForm({ id:uid(), fecha:today(), monto_usd:0, monto_bs:0, tasa:0 })

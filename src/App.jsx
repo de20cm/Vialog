@@ -27,6 +27,7 @@ export default function App() {
   const [gastos, setGastos] = useState([])
   const [mantenimientos, setMantenimientos] = useState([])
   const [clientes, setClientes] = useState([])
+  const [pagos, setPagos] = useState([])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -41,13 +42,14 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     const cargar = async () => {
-      const [c, d, v, g, m, cl] = await Promise.all([
+      const [c, d, v, g, m, cl, pg] = await Promise.all([
         supabase.from('camiones').select('*'),
         supabase.from('conductores').select('*'),
         supabase.from('viajes').select('*'),
         supabase.from('gastos').select('*'),
         supabase.from('mantenimientos').select('*'),
         supabase.from('clientes').select('*'),
+        supabase.from('pagos').select('*'),
       ])
       setCamiones(c.data || [])
       setConductores(d.data || [])
@@ -55,6 +57,7 @@ export default function App() {
       setGastos(g.data || [])
       setMantenimientos(m.data || [])
       setClientes(cl.data || [])
+      setPagos(pg.data || [])
       setLoading(false)
     }
     cargar()
@@ -150,10 +153,10 @@ export default function App() {
       {/* CONTENIDO */}
       <div style={{ maxWidth:"840px", margin:"0 auto", padding:"16px 13px 86px" }}>
         {tab === "dashboard"     && <Dashboard     viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} mantenimientos={mantenimientos}/>}
-        {tab === "viajes"        && <Viajes        viajes={viajes} setViajes={setViajes} camiones={camiones} conductores={conductores} clientes={clientes} gastos={gastos}/>}
+        {tab === "viajes"        && <Viajes        viajes={viajes} setViajes={setViajes} camiones={camiones} setCamiones={setCamiones} conductores={conductores} clientes={clientes} gastos={gastos}/>}
         {tab === "gastos"        && <Gastos        gastos={gastos} setGastos={setGastos} viajes={viajes} camiones={camiones}/>}
         {tab === "mantenimiento" && <Mantenimiento mantenimientos={mantenimientos} setMantenimientos={setMantenimientos} camiones={camiones}/>}
-        {tab === "pagos"         && <Pagos         viajes={viajes} clientes={clientes} conductores={conductores} camiones={camiones}/>}
+        {tab === "pagos"         && <Pagos         viajes={viajes} clientes={clientes} conductores={conductores} camiones={camiones} pagos={pagos} setPagos={setPagos}/>}
         {tab === "conductores"   && <Conductores   conductores={conductores} setConductores={setConductores} viajes={viajes}/>}
         {tab === "camiones"      && <Camiones      camiones={camiones} setCamiones={setCamiones} viajes={viajes}/>}
         {tab === "clientes"      && <Clientes      clientes={clientes} setClientes={setClientes} viajes={viajes}/>}
