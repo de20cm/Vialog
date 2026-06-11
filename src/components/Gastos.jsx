@@ -29,7 +29,8 @@ const Gastos = ({ gastos, setGastos, viajes, camiones }) => {
 
   const save_ = async () => {
     if (!form.subcategoria || !form.camion_id) return alert("Completa los campos obligatorios")
-    const { data } = await supabase.from('gastos').insert([form]).select()
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data } = await supabase.from('gastos').insert([{ ...form, user_id: user.id }]).select()
     setGastos(p => [...p, data[0]])
     setModal(false)
   }

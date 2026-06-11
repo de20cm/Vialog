@@ -31,7 +31,8 @@ const Pagos = ({ viajes, clientes, conductores, camiones, pagos, setPagos }) => 
       conductor: conductor?.nombre || '',
       camion: camion?.placa || '',
     }
-    const { data } = await supabase.from('pagos').insert([pago]).select()
+    const { data: { user } } = await supabase.auth.getUser()
+    const { data } = await supabase.from('pagos').insert([{ ...pago, user_id: user.id }]).select()
     setPagos(p => [...p, data[0]])
     setModal(false)
   }

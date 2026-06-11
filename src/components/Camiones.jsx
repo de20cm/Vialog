@@ -22,7 +22,8 @@ const Camiones = ({ camiones, setCamiones, viajes }) => {
   const save_ = async () => {
     if (!form.placa) return alert("La placa es obligatoria")
     if (modal === "new") {
-      const { data } = await supabase.from('camiones').insert([form]).select()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase.from('camiones').insert([{ ...form, user_id: user.id }]).select()
       setCamiones(p => [...p, data[0]])
     } else {
       await supabase.from('camiones').update(form).eq('id', form.id)

@@ -29,7 +29,8 @@ const Mantenimiento = ({ mantenimientos, setMantenimientos, camiones }) => {
   const save_ = async () => {
     if (!form.camion_id || !form.tipo) return alert("Completa los campos obligatorios")
     if (modal === "new") {
-      const { data } = await supabase.from('mantenimientos').insert([form]).select()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase.from('mantenimientos').insert([{ ...form, user_id: user.id }]).select()
       setMantenimientos(p => [...p, data[0]])
     } else {
       await supabase.from('mantenimientos').update(form).eq('id', form.id)
@@ -58,7 +59,9 @@ const Mantenimiento = ({ mantenimientos, setMantenimientos, camiones }) => {
       costo: 0,
       nota: m.nota || ''
     }
-    await supabase.from('historial_mantenimientos').insert([registro])
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('historial_mantenimientos').insert([{ ...registro, user_id: user.id }])
     setHistorial(p => [registro, ...p])
 
     // Actualizar tarea

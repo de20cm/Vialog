@@ -33,7 +33,8 @@ const Viajes = ({ viajes, setViajes, camiones, setCamiones, conductores, cliente
     if (!form.camion_id || !form.origen || !form.destino || !form.flete) return alert("Completa los campos obligatorios")
 
     if (modal === "new") {
-      const { data } = await supabase.from('viajes').insert([form]).select()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase.from('viajes').insert([{ ...form, user_id: user.id }]).select()
       setViajes(p => [...p, data[0]])
       if (form.km) {
         const camion = camiones.find(c => c.id === form.camion_id)

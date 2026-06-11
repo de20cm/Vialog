@@ -22,7 +22,8 @@ const Conductores = ({ conductores, setConductores, viajes }) => {
   const save_ = async () => {
     if (!form.nombre) return alert("El nombre es obligatorio")
     if (modal === "new") {
-      const { data } = await supabase.from('conductores').insert([form]).select()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase.from('conductores').insert([{ ...form, user_id: user.id }]).select()
       setConductores(p => [...p, data[0]])
     } else {
       await supabase.from('conductores').update(form).eq('id', form.id)

@@ -21,7 +21,8 @@ const Clientes = ({ clientes, setClientes, viajes }) => {
   const save_ = async () => {
     if (!form.nombre) return alert("El nombre es obligatorio")
     if (modal === "new") {
-      const { data } = await supabase.from('clientes').insert([form]).select()
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data } = await supabase.from('clientes').insert([{ ...form, user_id: user.id }]).select()
       setClientes(p => [...p, data[0]])
     } else {
       await supabase.from('clientes').update(form).eq('id', form.id)
