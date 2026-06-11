@@ -34,7 +34,7 @@ const Cuenta = ({ user }) => {
         <p style={{ margin:0, color:C.textSecondary, fontSize:"12px" }}>{user?.email}</p>
       </div>
 
-      <div style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:"10px", padding:"16px", maxWidth:"360px" }}>
+      <div style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:"10px", padding:"16px", maxWidth:"360px", marginLeft:"auto", marginRight:"auto" }}>
         <h4 style={{ margin:"0 0 12px", fontSize:"13px", fontWeight:600, color:C.textPrimary }}>Cambiar contraseña</h4>
 
         <Field label="Nueva contraseña">
