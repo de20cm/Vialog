@@ -13,6 +13,7 @@ import Pagos from './components/Pagos'
 import AIChat from './components/AIChat'
 import Login from './components/Login'
 import Ic from './components/ui/Icons'
+import Cuenta from './components/Cuenta'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -80,6 +81,7 @@ export default function App() {
     { id:"conductores",   label:"Conductores", icon:"users"   },
     { id:"camiones",      label:"Flota",     icon:"truck"     },
     { id:"clientes",      label:"Clientes",  icon:"clients"   },
+    { id:"cuenta",        label:"Cuenta",    icon:"users"      },
   ]
 
   const alertCount = mantenimientos.filter(m => {
@@ -160,6 +162,7 @@ export default function App() {
         {tab === "conductores"   && <Conductores   conductores={conductores} setConductores={setConductores} viajes={viajes}/>}
         {tab === "camiones"      && <Camiones      camiones={camiones} setCamiones={setCamiones} viajes={viajes}/>}
         {tab === "clientes"      && <Clientes      clientes={clientes} setClientes={setClientes} viajes={viajes}/>}
+        {tab === "cuenta" && <Cuenta user={user}/>}
       </div>
 
       <AIChat viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} clientes={clientes}/>
