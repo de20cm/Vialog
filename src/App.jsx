@@ -14,6 +14,12 @@ import AIChat from './components/AIChat'
 import Login from './components/Login'
 import Ic from './components/ui/Icons'
 import Cuenta from './components/Cuenta'
+import DashboardT from './components/tonelaje/Dashboard'
+import ViajesT from './components/tonelaje/Viajes'
+import GastosT from './components/tonelaje/Gastos'
+import CamionesT from './components/tonelaje/Camiones'
+import ConductoresT from './components/tonelaje/Conductores'
+import Rutas from './components/tonelaje/Rutas'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -21,7 +27,9 @@ export default function App() {
   const [tab, setTab] = useState("dashboard")
   const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [modo, setModo] = useState("flete") // "flete" | "tonelaje"
 
+  // --- Datos modo flete ---
   const [camiones, setCamiones] = useState([])
   const [conductores, setConductores] = useState([])
   const [viajes, setViajes] = useState([])
@@ -29,6 +37,13 @@ export default function App() {
   const [mantenimientos, setMantenimientos] = useState([])
   const [clientes, setClientes] = useState([])
   const [pagos, setPagos] = useState([])
+
+  // --- Datos modo tonelaje ---
+  const [camionesT, setCamionesT] = useState([])
+  const [conductoresT, setConductoresT] = useState([])
+  const [viajesT, setViajesT] = useState([])
+  const [gastosT, setGastosT] = useState([])
+  const [rutasT, setRutasT] = useState([])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -43,7 +58,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     const cargar = async () => {
-      const [c, d, v, g, m, cl, pg] = await Promise.all([
+      const [c, d, v, g, m, cl, pg, cT, dT, vT, gT, rT] = await Promise.all([
         supabase.from('camiones').select('*'),
         supabase.from('conductores').select('*'),
         supabase.from('viajes').select('*'),
@@ -51,6 +66,11 @@ export default function App() {
         supabase.from('mantenimientos').select('*'),
         supabase.from('clientes').select('*'),
         supabase.from('pagos').select('*'),
+        supabase.from('camiones_tonelaje').select('*'),
+        supabase.from('conductores_tonelaje').select('*'),
+        supabase.from('viajes_tonelaje').select('*'),
+        supabase.from('gastos_tonelaje').select('*'),
+        supabase.from('rutas_tonelaje').select('*'),
       ])
       setCamiones(c.data || [])
       setConductores(d.data || [])
@@ -59,6 +79,11 @@ export default function App() {
       setMantenimientos(m.data || [])
       setClientes(cl.data || [])
       setPagos(pg.data || [])
+      setCamionesT(cT.data || [])
+      setConductoresT(dT.data || [])
+      setViajesT(vT.data || [])
+      setGastosT(gT.data || [])
+      setRutasT(rT.data || [])
       setLoading(false)
     }
     cargar()
@@ -72,22 +97,40 @@ export default function App() {
 
   if (!user) return <Login onLogin={setUser}/>
 
-  const nav = [
+  const navFlete = [
     { id:"dashboard",     label:"Dashboard", icon:"dashboard" },
     { id:"viajes",        label:"Viajes",    icon:"route"     },
     { id:"gastos",        label:"Gastos",    icon:"money"     },
     { id:"mantenimiento", label:"Mant.",     icon:"wrench"    },
-    { id:"pagos",         label:"Pagos",     icon:"wallet"     },
+    { id:"pagos",         label:"Pagos",     icon:"wallet"    },
     { id:"conductores",   label:"Conductores", icon:"users"   },
     { id:"camiones",      label:"Flota",     icon:"truck"     },
     { id:"clientes",      label:"Clientes",  icon:"clients"   },
-    { id:"cuenta",        label:"Cuenta",    icon:"users"      },
+    { id:"cuenta",        label:"Cuenta",    icon:"users"     },
   ]
 
-  const alertCount = mantenimientos.filter(m => {
+  const navTonelaje = [
+    { id:"dashboard",     label:"Dashboard", icon:"dashboard" },
+    { id:"viajes",        label:"Operación", icon:"route"     },
+    { id:"gastos",        label:"Gastos",    icon:"money"     },
+    { id:"camiones",      label:"Flota",     icon:"truck"     },
+    { id:"conductores",   label:"Choferes",  icon:"users"     },
+    { id:"rutas",         label:"Rutas",     icon:"clients"   },
+    { id:"cuenta",        label:"Cuenta",    icon:"users"     },
+  ]
+
+  const nav = modo === "flete" ? navFlete : navTonelaje
+
+  const alertCount = modo === "flete" ? mantenimientos.filter(m => {
     const c = camiones.find(x => x.id === m.camion_id)
     return calcEstado(m, c?.km) !== "ok"
-  }).length
+  }).length : 0
+
+  const cambiarModo = m => {
+    setModo(m)
+    setTab("dashboard")
+    setMenuOpen(false)
+  }
 
   if (loading) return (
     <div style={{ background:C.bg0, minHeight:"100vh", display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -99,11 +142,22 @@ export default function App() {
     <div style={{ fontFamily:"system-ui,sans-serif", background:C.bg0, minHeight:"100vh", color:C.textPrimary }}>
 
       {/* TOPBAR */}
-      <div style={{ position:"sticky", top:0, zIndex:100, background:C.bg1, borderBottom:`1px solid ${C.border}`, padding:"10px 15px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+      <div style={{ position:"sticky", top:0, zIndex:100, background:C.bg1, borderBottom:`1px solid ${C.border}`, padding:"10px 15px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:"8px", flexWrap:"wrap" }}>
         <div style={{ display:"flex", alignItems:"center", gap:"7px" }}>
           <span style={{ fontSize:"16px", fontWeight:700, color:C.accentLight, letterSpacing:"-0.03em" }}>Vialog</span>
           <span style={{ fontSize:"9px", color:C.textMuted, background:C.bg3, padding:"2px 6px", borderRadius:"10px", fontWeight:600 }}>v1</span>
         </div>
+
+        {/* TOGGLE DE MODO */}
+        <div style={{ display:"flex", background:C.bg2, border:`1px solid ${C.border}`, borderRadius:"20px", padding:"2px" }}>
+          <button onClick={() => cambiarModo("flete")} style={{ padding:"4px 12px", borderRadius:"18px", border:"none", fontSize:"11px", fontWeight:700, cursor:"pointer", background:modo==="flete"?C.accent:"transparent", color:modo==="flete"?"#fff":C.textMuted }}>
+            Flete
+          </button>
+          <button onClick={() => cambiarModo("tonelaje")} style={{ padding:"4px 12px", borderRadius:"18px", border:"none", fontSize:"11px", fontWeight:700, cursor:"pointer", background:modo==="tonelaje"?C.accent:"transparent", color:modo==="tonelaje"?"#fff":C.textMuted }}>
+            Tonelaje
+          </button>
+        </div>
+
         <div style={{ display:"flex", alignItems:"center", gap:"10px" }}>
           <button onClick={() => supabase.auth.signOut()} style={{ background:"none", border:"none", color:C.textMuted, cursor:"pointer", fontSize:"11px", fontWeight:600 }}>
             Salir
@@ -126,6 +180,7 @@ export default function App() {
           <div style={{ position:"absolute", left:0, top:0, bottom:0, width:"210px", background:C.bg1, borderRight:`1px solid ${C.border}`, padding:"14px 0", display:"flex", flexDirection:"column", gap:"1px" }}>
             <div style={{ padding:"0 13px 13px", borderBottom:`1px solid ${C.border}`, marginBottom:"5px" }}>
               <span style={{ fontSize:"16px", fontWeight:700, color:C.accentLight }}>Vialog</span>
+              <div style={{ fontSize:"10px", color:C.textMuted, marginTop:"2px", textTransform:"capitalize" }}>Modo {modo}</div>
             </div>
             {nav.map(n => (
               <button key={n.id} onClick={() => { setTab(n.id); setMenuOpen(false) }} style={{ display:"flex", alignItems:"center", gap:"8px", padding:"9px 13px", background:tab===n.id?C.bg2:"none", border:"none", borderLeft:`3px solid ${tab===n.id?C.accent:"transparent"}`, color:tab===n.id?C.accentLight:C.textMuted, cursor:"pointer", textAlign:"left", fontSize:"12px", fontWeight:tab===n.id?600:400, width:"100%" }}>
@@ -154,18 +209,34 @@ export default function App() {
 
       {/* CONTENIDO */}
       <div style={{ maxWidth:"840px", margin:"0 auto", padding:"16px 13px 86px" }}>
-        {tab === "dashboard"     && <Dashboard     viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} mantenimientos={mantenimientos} pagos={pagos}/>}
-        {tab === "viajes"        && <Viajes        viajes={viajes} setViajes={setViajes} camiones={camiones} setCamiones={setCamiones} conductores={conductores} clientes={clientes} gastos={gastos}/>}
-        {tab === "gastos"        && <Gastos        gastos={gastos} setGastos={setGastos} viajes={viajes} camiones={camiones}/>}
-        {tab === "mantenimiento" && <Mantenimiento mantenimientos={mantenimientos} setMantenimientos={setMantenimientos} camiones={camiones}/>}
-        {tab === "pagos"         && <Pagos         viajes={viajes} clientes={clientes} conductores={conductores} camiones={camiones} pagos={pagos} setPagos={setPagos}/>}
-        {tab === "conductores"   && <Conductores   conductores={conductores} setConductores={setConductores} viajes={viajes}/>}
-        {tab === "camiones"      && <Camiones      camiones={camiones} setCamiones={setCamiones} viajes={viajes}/>}
-        {tab === "clientes"      && <Clientes      clientes={clientes} setClientes={setClientes} viajes={viajes}/>}
-        {tab === "cuenta" && <Cuenta user={user}/>}
+        {modo === "flete" && (
+          <>
+            {tab === "dashboard"     && <Dashboard     viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} mantenimientos={mantenimientos} pagos={pagos}/>}
+            {tab === "viajes"        && <Viajes        viajes={viajes} setViajes={setViajes} camiones={camiones} setCamiones={setCamiones} conductores={conductores} clientes={clientes} gastos={gastos}/>}
+            {tab === "gastos"        && <Gastos        gastos={gastos} setGastos={setGastos} viajes={viajes} camiones={camiones}/>}
+            {tab === "mantenimiento" && <Mantenimiento mantenimientos={mantenimientos} setMantenimientos={setMantenimientos} camiones={camiones}/>}
+            {tab === "pagos"         && <Pagos         viajes={viajes} clientes={clientes} conductores={conductores} camiones={camiones} pagos={pagos} setPagos={setPagos}/>}
+            {tab === "conductores"   && <Conductores   conductores={conductores} setConductores={setConductores} viajes={viajes}/>}
+            {tab === "camiones"      && <Camiones      camiones={camiones} setCamiones={setCamiones} viajes={viajes}/>}
+            {tab === "clientes"      && <Clientes      clientes={clientes} setClientes={setClientes} viajes={viajes}/>}
+            {tab === "cuenta"        && <Cuenta user={user}/>}
+          </>
+        )}
+
+        {modo === "tonelaje" && (
+          <>
+            {tab === "dashboard"   && <DashboardT  viajes={viajesT} gastos={gastosT} conductores={conductoresT} camiones={camionesT} rutas={rutasT}/>}
+            {tab === "viajes"      && <ViajesT     viajes={viajesT} setViajes={setViajesT} camiones={camionesT} conductores={conductoresT} rutas={rutasT}/>}
+            {tab === "gastos"      && <GastosT     gastos={gastosT} setGastos={setGastosT} camiones={camionesT}/>}
+            {tab === "camiones"    && <CamionesT   camiones={camionesT} setCamiones={setCamionesT} viajes={viajesT}/>}
+            {tab === "conductores" && <ConductoresT conductores={conductoresT} setConductores={setConductoresT} viajes={viajesT}/>}
+            {tab === "rutas"       && <Rutas       rutas={rutasT} setRutas={setRutasT}/>}
+            {tab === "cuenta"      && <Cuenta user={user}/>}
+          </>
+        )}
       </div>
 
-      <AIChat viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} clientes={clientes}/>
+      {modo === "flete" && <AIChat viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} clientes={clientes}/>}
     </div>
   )
 }
