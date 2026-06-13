@@ -162,10 +162,10 @@ export default function App() {
         {/* TOGGLE DE MODO */}
         <div style={{ display:"flex", background:C.bg2, border:`1px solid ${C.border}`, borderRadius:"20px", padding:"2px" }}>
           <button onClick={() => cambiarModo("flete")} style={{ padding:"4px 12px", borderRadius:"18px", border:"none", fontSize:"11px", fontWeight:700, cursor:"pointer", background:modo==="flete"?C.accent:"transparent", color:modo==="flete"?"#fff":C.textMuted }}>
-            Flete
+            Chutos
           </button>
           <button onClick={() => cambiarModo("tonelaje")} style={{ padding:"4px 12px", borderRadius:"18px", border:"none", fontSize:"11px", fontWeight:700, cursor:"pointer", background:modo==="tonelaje"?C.accent:"transparent", color:modo==="tonelaje"?"#fff":C.textMuted }}>
-            Tonelaje
+            Volteos
           </button>
         </div>
 
