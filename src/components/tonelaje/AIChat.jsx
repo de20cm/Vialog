@@ -1,0 +1,99 @@
+import { useState } from 'react'
+import { C } from '../../lib/colors'
+import Ic from '../ui/Icons'
+
+const AIChat = ({ viajes, gastos, conductores, camiones, rutas }) => {
+  const [open, setOpen] = useState(false)
+  const [msgs, setMsgs] = useState([{ role:"bot", text:"Hola. Soy el asistente de Vialog Tonelaje. Pregúntame sobre viajes, gastos, choferes o flota." }])
+  const [input, setInput] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [chips, setChips] = useState(true)
+
+  const ctx = () => {
+    const ingresoBruto = viajes.reduce((s,v) => s + (v.ingreso_bruto || 0), 0)
+    const totalGastos = gastos.reduce((s,g) => s + (g.monto_usd || 0), 0)
+    const totalToneladas = viajes.reduce((s,v) => s + (v.toneladas || 0), 0)
+    const cobranzaChoferes = viajes.reduce((s,v) => {
+      const cond = conductores.find(c => c.id === v.conductor_id)
+      return s + (v.ingreso_bruto || 0) * ((cond?.porcentaje || 0) / 100)
+    }, 0)
+
+    const vInfo = viajes.map(v => {
+      const cam = camiones.find(c => c.id === v.camion_id)
+      const cond = conductores.find(c => c.id === v.conductor_id)
+      const ruta = rutas.find(r => r.id === v.ruta_id)
+      return `${v.fecha}: Unidad ${cam?.numero}, chofer ${cond?.nombre}, ruta ${ruta?.nombre}, ${v.toneladas} toneladas, tarifa $${v.tarifa_tonelada}/ton, ingreso $${v.ingreso_bruto}, estado ${v.estado}`
+    }).join('\n')
+
+    return `Eres el asistente de Vialog Tonelaje, sistema de gestión de acarreo por tonelaje. Responde en español, conciso y directo.\n\nRESUMEN: Ingreso bruto $${ingresoBruto.toFixed(2)}, Gastos $${totalGastos.toFixed(2)}, Toneladas movidas ${totalToneladas.toFixed(2)}, Cobranza choferes $${cobranzaChoferes.toFixed(2)}\nUnidades: ${camiones.map(c => 'Unidad '+c.numero).join(', ')}\nChoferes: ${conductores.map(c => c.nombre).join(', ')}\nRutas: ${rutas.map(r => r.nombre).join(', ')}\n\nVIAJES:\n${vInfo}`
+  }
+
+  const send = async (t) => {
+    const txt = t || input.trim()
+    if (!txt || loading) return
+    setInput("")
+    setChips(false)
+    setMsgs(p => [...p, { role:"user", text:txt }])
+    setLoading(true)
+    try {
+      const r = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ system: ctx(), messages: [{ role:"user", content:txt }] })
+      })
+      const d = await r.json()
+      setMsgs(p => [...p, { role:"bot", text: d.content?.map(b => b.text || "").join("") || "Error al procesar." }])
+    } catch {
+      setMsgs(p => [...p, { role:"bot", text:"Error de conexión." }])
+    }
+    setLoading(false)
+  }
+
+  const chipList = ["¿Cuántas toneladas movimos este mes?", "¿Cuál fue el viaje más rentable?", "¿Cuánto le toca a cada chofer?"]
+
+  return (
+    <>
+      {open && (
+        <div style={{ position:"fixed", bottom:"68px", right:"14px", width:"295px", background:C.bg1, border:`1px solid ${C.border}`, borderRadius:"12px", display:"flex", flexDirection:"column", zIndex:500, boxShadow:"0 8px 32px rgba(0,0,0,0.5)" }}>
+          <div style={{ background:C.bg2, borderBottom:`1px solid ${C.border}`, padding:"10px 13px", display:"flex", alignItems:"center", gap:"7px" }}>
+            <div style={{ width:"6px", height:"6px", borderRadius:"50%", background:C.accent }}/>
+            <span style={{ fontSize:"13px", fontWeight:600, color:C.textPrimary }}>Asistente Vialog</span>
+            <span style={{ fontSize:"10px", color:C.textMuted, marginLeft:"auto" }}>Haiku</span>
+          </div>
+          <div style={{ padding:"10px", display:"flex", flexDirection:"column", gap:"7px", maxHeight:"240px", overflowY:"auto" }}>
+            {msgs.map((m,i) => (
+              <div key={i} style={{ alignSelf:m.role==="user"?"flex-end":"flex-start", background:m.role==="user"?C.blueBg:C.bg2, border:`1px solid ${m.role==="user"?C.blueBorder:C.border}`, color:m.role==="user"?C.blue:C.textSecondary, fontSize:"12px", padding:"7px 10px", borderRadius:m.role==="user"?"10px 10px 2px 10px":"10px 10px 10px 2px", maxWidth:"88%", lineHeight:"1.5", whiteSpace:"pre-wrap" }}>
+                {m.text}
+              </div>
+            ))}
+            {loading && (
+              <div style={{ alignSelf:"flex-start", background:C.bg2, border:`1px solid ${C.border}`, color:C.textMuted, fontSize:"12px", padding:"7px 10px", borderRadius:"10px 10px 10px 2px" }}>
+                Consultando...
+              </div>
+            )}
+          </div>
+          {chips && (
+            <div style={{ padding:"0 10px 8px", display:"flex", flexDirection:"column", gap:"4px" }}>
+              {chipList.map(c => (
+                <button key={c} onClick={() => send(c)} style={{ background:C.bg2, border:`1px solid ${C.border}`, borderRadius:"6px", padding:"6px 10px", fontSize:"11px", color:C.textMuted, cursor:"pointer", textAlign:"left" }}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
+          <div style={{ borderTop:`1px solid ${C.border}`, padding:"7px 9px", display:"flex", gap:"6px", background:C.bg2 }}>
+            <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} placeholder="Pregunta algo..." style={{ flex:1, background:C.bg0, border:`1px solid ${C.border}`, borderRadius:"6px", padding:"6px 9px", color:C.textPrimary, fontSize:"12px", outline:"none" }}/>
+            <button onClick={() => send()} style={{ background:C.accent, border:"none", borderRadius:"6px", padding:"6px 10px", color:"#fff", cursor:"pointer", display:"flex", alignItems:"center" }}>
+              <Ic n="send" s={13}/>
+            </button>
+          </div>
+        </div>
+      )}
+      <button onClick={() => setOpen(p => !p)} style={{ position:"fixed", bottom:"68px", right:"14px", width:"44px", height:"44px", borderRadius:"50%", background:C.accent, border:"none", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", zIndex:501, boxShadow:`0 4px 20px ${C.accent}66` }}>
+        {open ? <Ic n="close" s={19}/> : <Ic n="ai" s={19}/>}
+      </button>
+    </>
+  )
+}
+
+export default AIChat

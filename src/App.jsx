@@ -21,6 +21,7 @@ import CamionesT from './components/tonelaje/Camiones'
 import ConductoresT from './components/tonelaje/Conductores'
 import Rutas from './components/tonelaje/Rutas'
 import MantenimientoT from './components/tonelaje/Mantenimiento'
+import AIChatT from './components/tonelaje/AIChat'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -248,6 +249,7 @@ export default function App() {
       </div>
 
       {modo === "flete" && <AIChat viajes={viajes} gastos={gastos} conductores={conductores} camiones={camiones} clientes={clientes}/>}
+      {modo === "tonelaje" && <AIChatT viajes={viajesT} gastos={gastosT} conductores={conductoresT} camiones={camionesT} rutas={rutasT}/>}
     </div>
   )
 }
