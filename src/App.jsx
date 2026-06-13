@@ -20,6 +20,7 @@ import GastosT from './components/tonelaje/Gastos'
 import CamionesT from './components/tonelaje/Camiones'
 import ConductoresT from './components/tonelaje/Conductores'
 import Rutas from './components/tonelaje/Rutas'
+import MantenimientoT from './components/tonelaje/Mantenimiento'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -44,6 +45,7 @@ export default function App() {
   const [viajesT, setViajesT] = useState([])
   const [gastosT, setGastosT] = useState([])
   const [rutasT, setRutasT] = useState([])
+  const [mantenimientosT, setMantenimientosT] = useState([])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -58,7 +60,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     const cargar = async () => {
-      const [c, d, v, g, m, cl, pg, cT, dT, vT, gT, rT] = await Promise.all([
+      const [c, d, v, g, m, cl, pg, cT, dT, vT, gT, rT, mT] = await Promise.all([
         supabase.from('camiones').select('*'),
         supabase.from('conductores').select('*'),
         supabase.from('viajes').select('*'),
@@ -71,6 +73,7 @@ export default function App() {
         supabase.from('viajes_tonelaje').select('*'),
         supabase.from('gastos_tonelaje').select('*'),
         supabase.from('rutas_tonelaje').select('*'),
+        supabase.from('mantenimientos_tonelaje').select('*'),
       ])
       setCamiones(c.data || [])
       setConductores(d.data || [])
@@ -84,6 +87,7 @@ export default function App() {
       setViajesT(vT.data || [])
       setGastosT(gT.data || [])
       setRutasT(rT.data || [])
+      setMantenimientosT(mT.data || [])
       setLoading(false)
     }
     cargar()
@@ -113,6 +117,7 @@ export default function App() {
     { id:"dashboard",     label:"Dashboard", icon:"dashboard" },
     { id:"viajes",        label:"Operación", icon:"route"     },
     { id:"gastos",        label:"Gastos",    icon:"money"     },
+    { id:"mantenimiento", label:"Mant.",     icon:"wrench"    },
     { id:"camiones",      label:"Flota",     icon:"truck"     },
     { id:"conductores",   label:"Choferes",  icon:"users"     },
     { id:"rutas",         label:"Rutas",     icon:"clients"   },
@@ -121,10 +126,15 @@ export default function App() {
 
   const nav = modo === "flete" ? navFlete : navTonelaje
 
-  const alertCount = modo === "flete" ? mantenimientos.filter(m => {
-    const c = camiones.find(x => x.id === m.camion_id)
-    return calcEstado(m, c?.km) !== "ok"
-  }).length : 0
+  const alertCount = modo === "flete"
+    ? mantenimientos.filter(m => {
+        const c = camiones.find(x => x.id === m.camion_id)
+        return calcEstado(m, c?.km) !== "ok"
+      }).length
+    : mantenimientosT.filter(m => {
+        const c = camionesT.find(x => x.id === m.camion_id)
+        return calcEstado(m, c?.km) !== "ok"
+      }).length
 
   const cambiarModo = m => {
     setModo(m)
@@ -225,13 +235,14 @@ export default function App() {
 
         {modo === "tonelaje" && (
           <>
-            {tab === "dashboard"   && <DashboardT  viajes={viajesT} gastos={gastosT} conductores={conductoresT} camiones={camionesT} rutas={rutasT}/>}
-            {tab === "viajes"      && <ViajesT     viajes={viajesT} setViajes={setViajesT} camiones={camionesT} conductores={conductoresT} rutas={rutasT}/>}
-            {tab === "gastos"      && <GastosT     gastos={gastosT} setGastos={setGastosT} camiones={camionesT}/>}
-            {tab === "camiones"    && <CamionesT   camiones={camionesT} setCamiones={setCamionesT} viajes={viajesT}/>}
-            {tab === "conductores" && <ConductoresT conductores={conductoresT} setConductores={setConductoresT} viajes={viajesT}/>}
-            {tab === "rutas"       && <Rutas       rutas={rutasT} setRutas={setRutasT}/>}
-            {tab === "cuenta"      && <Cuenta user={user}/>}
+            {tab === "dashboard"     && <DashboardT     viajes={viajesT} gastos={gastosT} conductores={conductoresT} camiones={camionesT} rutas={rutasT}/>}
+            {tab === "viajes"        && <ViajesT        viajes={viajesT} setViajes={setViajesT} camiones={camionesT} conductores={conductoresT} rutas={rutasT}/>}
+            {tab === "gastos"        && <GastosT        gastos={gastosT} setGastos={setGastosT} camiones={camionesT}/>}
+            {tab === "mantenimiento" && <MantenimientoT mantenimientos={mantenimientosT} setMantenimientos={setMantenimientosT} camiones={camionesT}/>}
+            {tab === "camiones"      && <CamionesT      camiones={camionesT} setCamiones={setCamionesT} viajes={viajesT}/>}
+            {tab === "conductores"   && <ConductoresT   conductores={conductoresT} setConductores={setConductoresT} viajes={viajesT}/>}
+            {tab === "rutas"         && <Rutas          rutas={rutasT} setRutas={setRutasT}/>}
+            {tab === "cuenta"        && <Cuenta user={user}/>}
           </>
         )}
       </div>
