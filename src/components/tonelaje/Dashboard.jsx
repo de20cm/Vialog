@@ -79,11 +79,11 @@ const Dashboard = ({ viajes, gastos, conductores, camiones, rutas }) => {
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))", gap:"9px" }}>
         <KpiCard label="Ingreso bruto" value={`$${fmt(ingresoBruto)}`} sub={`${viajesMes.length} Viajes`} color={C.accentLight} icon={<Ic n="money" s={16}/>}/>
         <KpiCard label="Gastos" value={`$${fmt(totalGastos)}`} color={C.red} icon={<Ic n="wrench" s={16}/>}/>
+        <KpiCard label="Toneladas" value={fmt(totalToneladas)} sub={`${totalTickers} Tickers`} color="#c084fc" icon={<Ic n="truck" s={16}/>}/>
         <KpiCard label="Cobranza choferes" value={`$${fmt(cobranzaChoferes)}`} color={C.yellow} icon={<Ic n="users" s={16}/>}/>
         <KpiCard label="Utilidad" value={`$${fmt(utilidad)}`} sub={`${ingresoBruto > 0 ? ((utilidad/ingresoBruto)*100).toFixed(1) : 0}% Margen`} color={utilidad >= 0 ? C.green : C.red} icon={<Ic n="money" s={16}/>}/>
         <KpiCard label="Pagado / Pendiente" value={`$${fmt(pagado)}`} sub={`Pendiente: $${fmt(pendiente)}`} color={C.green} icon={<Ic n="check" s={16}/>}/>
       </div>
-        <KpiCard label="Toneladas" value={fmt(totalToneladas)} sub={`${totalTickers} Tickers`} color="#c084fc" icon={<Ic n="truck" s={16}/>}/>
 
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:"12px" }}>
         <div style={{ background:C.bg1, border:`1px solid ${C.border}`, borderRadius:"10px", padding:"14px" }}>
