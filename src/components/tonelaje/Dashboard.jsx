@@ -31,7 +31,7 @@ const Dashboard = ({ viajes, gastos, conductores, camiones, rutas }) => {
   const ingresoBruto = viajesMes.reduce((s,v) => s + (v.ingreso_bruto || 0), 0)
   const totalGastos = gastosMes.reduce((s,g) => s + (g.monto_usd || 0), 0)
   const totalToneladas = viajesMes.reduce((s,v) => s + (v.toneladas || 0), 0)
-  const totalTickers = viajesMes.reduce((s,v) => s + (v.tickers || 0), 0)
+  const totalTickers = viajesMes.filter(v => v.tickers).length
   const cobranzaChoferes = viajesMes.reduce((s,v) => {
     const cond = conductores.find(c => c.id === v.conductor_id)
     return s + (v.ingreso_bruto || 0) * ((cond?.porcentaje || 0) / 100)
