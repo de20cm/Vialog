@@ -20,6 +20,7 @@ import GastosT from './components/tonelaje/Gastos'
 import CamionesT from './components/tonelaje/Camiones'
 import ConductoresT from './components/tonelaje/Conductores'
 import Rutas from './components/tonelaje/Rutas'
+import PagosT from './components/tonelaje/Pagos'
 import MantenimientoT from './components/tonelaje/Mantenimiento'
 import AIChatT from './components/tonelaje/AIChat'
 
@@ -47,6 +48,8 @@ export default function App() {
   const [gastosT, setGastosT] = useState([])
   const [rutasT, setRutasT] = useState([])
   const [mantenimientosT, setMantenimientosT] = useState([])
+  const [pagosT, setPagosT] = useState([])
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -61,7 +64,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return
     const cargar = async () => {
-      const [c, d, v, g, m, cl, pg, cT, dT, vT, gT, rT, mT] = await Promise.all([
+      const [c, d, v, g, m, cl, pg, cT, dT, vT, gT, rT, mT, pgT] = await Promise.all([
         supabase.from('camiones').select('*'),
         supabase.from('conductores').select('*'),
         supabase.from('viajes').select('*'),
@@ -75,6 +78,7 @@ export default function App() {
         supabase.from('gastos_tonelaje').select('*'),
         supabase.from('rutas_tonelaje').select('*'),
         supabase.from('mantenimientos_tonelaje').select('*'),
+        supabase.from('pagos_tonelaje').select('*'),
       ])
       setCamiones(c.data || [])
       setConductores(d.data || [])
@@ -89,6 +93,7 @@ export default function App() {
       setGastosT(gT.data || [])
       setRutasT(rT.data || [])
       setMantenimientosT(mT.data || [])
+      setPagosT(pgT.data || [])
       setLoading(false)
     }
     cargar()
@@ -122,6 +127,7 @@ export default function App() {
     { id:"camiones",      label:"Flota",     icon:"truck"     },
     { id:"conductores",   label:"Choferes",  icon:"users"     },
     { id:"rutas",         label:"Rutas",     icon:"clients"   },
+    { id:"pagos", label:"Pagos", icon:"wallet" },
     { id:"cuenta",        label:"Cuenta",    icon:"users"     },
   ]
 
@@ -243,6 +249,7 @@ export default function App() {
             {tab === "camiones"      && <CamionesT      camiones={camionesT} setCamiones={setCamionesT} viajes={viajesT}/>}
             {tab === "conductores"   && <ConductoresT   conductores={conductoresT} setConductores={setConductoresT} viajes={viajesT}/>}
             {tab === "rutas"         && <Rutas          rutas={rutasT} setRutas={setRutasT}/>}
+            {tab === "pagos" && <PagosT viajes={viajesT} pagos={pagosT} setPagos={setPagosT} conductores={conductoresT} camiones={camionesT} rutas={rutasT}/>}
             {tab === "cuenta"        && <Cuenta user={user}/>}
           </>
         )}
